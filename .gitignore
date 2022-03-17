@@ -138,3 +138,5 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+models/SO_vectors_200.bin
+.vscode/launch.json
