@@ -7,6 +7,7 @@ from flask_cors import CORS, cross_origin
 
 from SearchEngine import SearchEngine
 
+
 # Create Flask application method
 app = flask.Flask(__name__)
 cors = CORS(app)
@@ -16,9 +17,11 @@ app.config["DEBUG"] = True
 engine = SearchEngine()
 engine.load_query_embedding()
 
+
 @app.route('/', methods=["GET"])
 def home():
     return "<h1>Embeddings search Engine</h1><p>Dual Space Word Embeddings  Semantic Search Engine</p>"
+
 
 @app.route('/train', methods=["POST"])
 @cross_origin()
@@ -37,7 +40,7 @@ def search():
     """Search a query on trained model"""
     query_parameters = request.args
     query = query_parameters.get('query')
-    results = engine.search(query, False)
+    results = engine.search(query, True)
     return json.dumps(results)
 
 

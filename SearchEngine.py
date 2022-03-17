@@ -7,6 +7,7 @@ from utils import show_scores
 from utils import tokenize
 import gensim
 import gensim.downloader as api
+from gensim.models.keyedvectors import KeyedVectors
 
 DATASET = 'glove-twitter-50'
 
@@ -23,7 +24,9 @@ class SearchEngine:
 
     def load_query_embedding(self):
         self.__setStatus(Status.PREPARING)
-        corpus = api.load(DATASET)
+        # https://github.com/vefstathiou/SO_word2vec
+        corpus = KeyedVectors.load_word2vec_format(
+            "./models/SO_vectors_200.bin", binary=True)
         self.__setStatus(Status.READY)
         self.__query_embedding = corpus
 
@@ -48,7 +51,6 @@ class SearchEngine:
         self.__status = status
 
     def train(self, docs):
-        # self.__query_embedding = self.__load_query_embedding()
         self.__docs, self.__tokenized_docs = self.__prepare_docs(docs)
 
     def search(self, raw_query, dual=False):
@@ -61,28 +63,34 @@ class SearchEngine:
             documents = retrieved_documents
             tokenized_documents = tokenzed_retrieved_documents
 
-        results = self.rank(raw_query, documents, tokenized_documents)
+        results = self.rank(
+            raw_query, documents, tokenized_documents, retrieval_scores)
         return {
             'data': results,
             'model': Retriever.model + (f' + {Ranker.model}' if dual else ''),
             'object': DATASET
         }
 
-    def retrieve(self, raw_query, ):
+    def retrieve(self, raw_query):
         tokenized_query = self.__prepare_query(raw_query)
         retriever = Retriever(self.__tokenized_docs)
         retrieval_indexes, retrieval_scores = retriever.query(tokenized_query)
 
-        retrieved_documents = [self.__docs[idx] for idx in retrieval_indexes]
+        positive_indexes = [index  for index in retrieval_indexes if retrieval_scores[index] > 0]
+        retrieved_documents = [self.__docs[retrieval_indexes[idx]] for idx in positive_indexes]
         tokenized_retrieved_documents = [
-            self.__tokenized_docs[idx] for idx in retrieval_indexes]
+            self.__tokenized_docs[retrieval_indexes[idx]] for idx in positive_indexes]
 
         print("======== BM25 ========")
         show_scores(retrieved_documents, retrieval_scores,
                     len(retrieved_documents))
-        return (retrieved_documents, tokenized_retrieved_documents, retrieval_scores)
+        return (
+            retrieved_documents,
+            tokenized_retrieved_documents,
+            retrieval_scores,
+        )
 
-    def rank(self, raw_query, retrieved_documents, tokenized_retrieved_documents):
+    def rank(self, raw_query, retrieved_documents, tokenized_retrieved_documents, retrieval_scores):
         self.__setStatus(Status.RANKING)
         tokenized_query = self.__prepare_query(raw_query)
 
@@ -101,8 +109,8 @@ class SearchEngine:
 
         results = [{'object': DATASET,
                     'document': float(i),
-                    'score': float(ranker_scores[i]),
-                    'text': self.__docs[ranker_indexes[i]]['text'],
-                    'metadata': self.__docs[ranker_indexes[i]]['metadata'],
+                    'score': float(ranker_scores[i]) + float(retrieval_scores[ranker_indexes[i]]),
+                    'text': reranked_documents[i]['text'],
+                    'metadata': reranked_documents[i]['metadata'],
                     } for i in range(len(ranker_indexes))]
         return results
