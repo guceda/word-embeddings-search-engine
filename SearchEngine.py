@@ -21,11 +21,11 @@ class SearchEngine:
         self.__tokenized_docs = None
         self.__query_embedding = None
 
-    def __load_query_embedding(self):
+    def load_query_embedding(self):
         self.__setStatus(Status.PREPARING)
         corpus = api.load(DATASET)
         self.__setStatus(Status.READY)
-        return corpus
+        self.__query_embedding = corpus
 
     def __prepare_docs(self, documents):
         self.__setStatus(Status.PREPARING)
@@ -48,7 +48,7 @@ class SearchEngine:
         self.__status = status
 
     def train(self, docs):
-        self.__query_embedding = self.__load_query_embedding()
+        # self.__query_embedding = self.__load_query_embedding()
         self.__docs, self.__tokenized_docs = self.__prepare_docs(docs)
 
     def search(self, raw_query, dual=False):
@@ -68,7 +68,7 @@ class SearchEngine:
             'object': DATASET
         }
 
-    def retrieve(self, raw_query):
+    def retrieve(self, raw_query, ):
         tokenized_query = self.__prepare_query(raw_query)
         retriever = Retriever(self.__tokenized_docs)
         retrieval_indexes, retrieval_scores = retriever.query(tokenized_query)
@@ -83,9 +83,6 @@ class SearchEngine:
         return (retrieved_documents, tokenized_retrieved_documents, retrieval_scores)
 
     def rank(self, raw_query, retrieved_documents, tokenized_retrieved_documents):
-        # TRY WITH COMBINING WITH RETRIEVE
-        # TRY WITH A DIFFERENT MODEL
-        # SAVE MODEL
         self.__setStatus(Status.RANKING)
         tokenized_query = self.__prepare_query(raw_query)
 

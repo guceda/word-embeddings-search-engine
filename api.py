@@ -14,7 +14,7 @@ cors = CORS(app)
 app.config["DEBUG"] = True
 
 engine = SearchEngine()
-
+engine.load_query_embedding()
 
 @app.route('/', methods=["GET"])
 def home():
