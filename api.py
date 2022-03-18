@@ -1,6 +1,4 @@
-import os
 import json
-from urllib import response
 import flask
 from flask import jsonify, request
 from flask_cors import CORS, cross_origin
