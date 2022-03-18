@@ -57,13 +57,13 @@ class SearchEngine:
         documents = self.__docs
         tokenized_documents = self.__tokenized_docs
         if dual:
-            retrieved_documents, tokenzed_retrieved_documents, retrieval_scores = self.retrieve(
+            retrieved_documents, tokenzed_retrieved_documents, retrieval_scores = self.__retrieve(
                 raw_query)
 
             documents = retrieved_documents
             tokenized_documents = tokenzed_retrieved_documents
 
-        results = self.rank(
+        results = self.__rank(
             raw_query, documents, tokenized_documents, retrieval_scores)
         return {
             'data': results,
@@ -71,15 +71,16 @@ class SearchEngine:
             'object': DATASET
         }
 
-    def retrieve(self, raw_query):
+    def __retrieve(self, raw_query):
         tokenized_query = self.__prepare_query(raw_query)
         retriever = Retriever(self.__tokenized_docs)
         retrieval_indexes, retrieval_scores = retriever.query(tokenized_query)
 
-        positive_indexes = [index  for index in retrieval_indexes if retrieval_scores[index] > 0]
-        retrieved_documents = [self.__docs[retrieval_indexes[idx]] for idx in positive_indexes]
+        positive_indexes = [retrieval_indexes[index] for index in range(
+            len(retrieval_indexes)) if retrieval_scores[index] > 0]
+        retrieved_documents = [self.__docs[idx] for idx in positive_indexes]
         tokenized_retrieved_documents = [
-            self.__tokenized_docs[retrieval_indexes[idx]] for idx in positive_indexes]
+            self.__tokenized_docs[idx] for idx in positive_indexes]
 
         print("======== BM25 ========")
         show_scores(retrieved_documents, retrieval_scores,
@@ -90,9 +91,12 @@ class SearchEngine:
             retrieval_scores,
         )
 
-    def rank(self, raw_query, retrieved_documents, tokenized_retrieved_documents, retrieval_scores):
+    def __rank(self, raw_query, retrieved_documents, tokenized_retrieved_documents, retrieval_scores):
         self.__setStatus(Status.RANKING)
         tokenized_query = self.__prepare_query(raw_query)
+
+        if len(retrieved_documents) == 0:
+            return []
 
         self.__logger(f"Ranking documents...")
         ranker = Ranker(query_embedding=self.__query_embedding,
