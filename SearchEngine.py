@@ -60,8 +60,8 @@ class SearchEngine:
             retrieved_documents, tokenzed_retrieved_documents, retrieval_scores = self.__retrieve(
                 raw_query)
 
-            documents = retrieved_documents
-            tokenized_documents = tokenzed_retrieved_documents
+            # documents = retrieved_documents
+            # tokenized_documents = tokenzed_retrieved_documents
 
         results = self.__rank(
             raw_query, documents, tokenized_documents, retrieval_scores)
@@ -113,7 +113,7 @@ class SearchEngine:
 
         results = [{'object': DATASET,
                     'document': float(i),
-                    'score': float(ranker_scores[i]) + float(retrieval_scores[ranker_indexes[i]]),
+                    'score': float(ranker_scores[i]), # + float(retrieval_scores[ranker_indexes[i]]),
                     'text': reranked_documents[i]['text'],
                     'metadata': reranked_documents[i]['metadata'],
                     } for i in range(len(ranker_indexes))]
