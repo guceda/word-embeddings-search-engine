@@ -21,6 +21,13 @@ def home():
     return "<h1>Embeddings search Engine</h1><p>Dual Space Word Embeddings  Semantic Search Engine</p>"
 
 
+@app.route('/status', methods=["GET"])
+@cross_origin()
+def status():
+    """Get search engine status"""
+    return jsonify(status=str(engine.get_status()))
+
+
 @app.route('/train', methods=["POST"])
 @cross_origin()
 def train():
