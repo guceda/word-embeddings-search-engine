@@ -18,7 +18,7 @@ engine.load_query_embedding()
 
 @app.route('/', methods=["GET"])
 def home():
-    return "<h1>Embeddings search Engine</h1><p>Dual Space Word Embeddings  Semantic Search Engine</p>"
+    return "<h1>Embeddings search Engine</h1><p>Dual Space Word Embeddings Semantic Search Engine</p>"
 
 
 @app.route('/status', methods=["GET"])

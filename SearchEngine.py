@@ -9,7 +9,7 @@ import gensim
 import gensim.downloader as api
 from gensim.models.keyedvectors import KeyedVectors
 
-DATASET = 'glove-twitter-50'
+MODEL = 'SO_vectors_200.bin'
 
 # logging.basicConfig(level=logging.DEBUG)
 
@@ -26,7 +26,7 @@ class SearchEngine:
         self.__setStatus(Status.PREPARING)
         # https://github.com/vefstathiou/SO_word2vec
         corpus = KeyedVectors.load_word2vec_format(
-            "./models/SO_vectors_200.bin", binary=True)
+            f"./models/{MODEL}", binary=True)
         self.__setStatus(Status.READY)
         self.__query_embedding = corpus
 
@@ -68,7 +68,7 @@ class SearchEngine:
         return {
             'data': results,
             'model': Retriever.model + (f' + {Ranker.model}' if dual else ''),
-            'object': DATASET
+            'object': MODEL
         }
 
     def __retrieve(self, raw_query):
@@ -111,7 +111,7 @@ class SearchEngine:
         show_scores(reranked_documents, ranker_scores, len(reranked_documents))
         self.__setStatus(Status.READY)
 
-        results = [{'object': DATASET,
+        results = [{'object': MODEL,
                     'document': float(i),
                     'score': float(ranker_scores[i]), # + float(retrieval_scores[ranker_indexes[i]]),
                     'text': reranked_documents[i]['text'],
