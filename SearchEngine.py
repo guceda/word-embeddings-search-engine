@@ -56,40 +56,46 @@ class SearchEngine:
     def search(self, raw_query, dual=False):
         documents = self.__docs
         tokenized_documents = self.__tokenized_docs
-        if dual:
-            retrieved_documents, tokenzed_retrieved_documents, retrieval_scores = self.__retrieve(
-                raw_query)
+        retrieval_scores, retrieved_documents, tokenzed_retrieved_documents = self.__retrieve(
+            raw_query, dual)
 
-            # documents = retrieved_documents
-            # tokenized_documents = tokenzed_retrieved_documents
+        docs = retrieved_documents if dual else documents
+        tokenized_docs = tokenzed_retrieved_documents if dual else tokenized_documents
 
         results = self.__rank(
-            raw_query, documents, tokenized_documents, retrieval_scores)
+            raw_query, docs, tokenized_docs, retrieval_scores)
         return {
             'data': results,
             'model': Retriever.model + (f' + {Ranker.model}' if dual else ''),
             'object': MODEL
         }
 
-    def __retrieve(self, raw_query):
+    def __retrieve(self, raw_query, dual):
         tokenized_query = self.__prepare_query(raw_query)
         retriever = Retriever(self.__tokenized_docs)
         retrieval_indexes, retrieval_scores = retriever.query(tokenized_query)
 
         positive_indexes = [retrieval_indexes[index] for index in range(
             len(retrieval_indexes)) if retrieval_scores[index] > 0]
-        retrieved_documents = [self.__docs[idx] for idx in positive_indexes]
-        tokenized_retrieved_documents = [
-            self.__tokenized_docs[idx] for idx in positive_indexes]
 
-        print("======== BM25 ========")
-        show_scores(retrieved_documents, retrieval_scores,
-                    len(retrieved_documents))
-        return (
-            retrieved_documents,
-            tokenized_retrieved_documents,
-            retrieval_scores,
-        )
+        if dual:
+            retrieved_documents = [self.__docs[idx]
+                                   for idx in positive_indexes]
+            tokenized_retrieved_documents = [
+                self.__tokenized_docs[idx] for idx in positive_indexes]
+
+            print("======== BM25 ========")
+            show_scores(retrieved_documents, retrieval_scores,
+                        len(retrieved_documents))
+            return (
+                retrieval_scores,
+                retrieved_documents,
+                tokenized_retrieved_documents,
+            )
+
+        else:
+            show_scores([], retrieval_scores, 0)
+            return (retrieval_scores, None, None)
 
     def __rank(self, raw_query, retrieved_documents, tokenized_retrieved_documents, retrieval_scores):
         self.__setStatus(Status.RANKING)
@@ -113,7 +119,8 @@ class SearchEngine:
 
         results = [{'object': MODEL,
                     'document': float(i),
-                    'score': float(ranker_scores[i]), # + float(retrieval_scores[ranker_indexes[i]]),
+                    # + float(retrieval_scores[ranker_indexes[i]]),
+                    'score': float(ranker_scores[i]),
                     'text': reranked_documents[i]['text'],
                     'metadata': reranked_documents[i]['metadata'],
                     } for i in range(len(ranker_indexes))]
