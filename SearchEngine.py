@@ -1,4 +1,4 @@
-from asyncio.log import logger
+from BM25 import BM25
 from EngineStatus import Status
 from Ranker import Ranker
 from Retriever import Retriever
@@ -20,15 +20,16 @@ class SearchEngine:
         self.__status = Status.DOWN
         self.__docs = None
         self.__tokenized_docs = None
-        self.__query_embedding = None
+        self.__query_embedding = self.load_query_embedding()
 
     def load_query_embedding(self):
         self.__setStatus(Status.PREPARING)
+        self.__logger(f"Loading {MODEL}...")
         # https://github.com/vefstathiou/SO_word2vec
         corpus = KeyedVectors.load_word2vec_format(
             f"./models/{MODEL}", binary=True)
         self.__setStatus(Status.READY)
-        self.__query_embedding = corpus
+        return corpus
 
     def __prepare_docs(self, documents):
         self.__setStatus(Status.PREPARING)
@@ -56,14 +57,15 @@ class SearchEngine:
     def search(self, raw_query, dual=False):
         documents = self.__docs
         tokenized_documents = self.__tokenized_docs
-        retrieval_scores, retrieved_documents, tokenzed_retrieved_documents = self.__retrieve(
-            raw_query, dual)
-
-        docs = retrieved_documents if dual else documents
-        tokenized_docs = tokenzed_retrieved_documents if dual else tokenized_documents
+        # if dual Initial screening to fastly retrieve the n most relevant documents using BM25
+        if dual:
+            retrieval_scores, retrieved_documents, tokenzed_retrieved_documents = self.__retrieve(
+                raw_query, dual)
+            documents = retrieved_documents
+            tokenized_documents = tokenzed_retrieved_documents
 
         results = self.__rank(
-            raw_query, docs, tokenized_docs, retrieval_scores)
+            raw_query, documents, tokenized_documents, retrieval_scores)
         return {
             'data': results,
             'model': Retriever.model + (f' + {Ranker.model}' if dual else ''),
@@ -71,26 +73,31 @@ class SearchEngine:
         }
 
     def __retrieve(self, raw_query, dual):
+        # Convert query to array of strings:: "convert string" -> ["convert", "string"]
         tokenized_query = self.__prepare_query(raw_query)
+        # Set the BM25 model
         retriever = Retriever(self.__tokenized_docs)
+        # Return list with sorted positions and its scores
         retrieval_indexes, retrieval_scores = retriever.query(tokenized_query)
-
+        # Get rid of non-positive-ranked entries
         positive_indexes = [retrieval_indexes[index] for index in range(
             len(retrieval_indexes)) if retrieval_scores[index] > 0]
-
+        # If dual, make use of this list to reduce the list of valid entries.
         if dual:
-            retrieved_documents = [self.__docs[idx]
-                                   for idx in positive_indexes]
-            tokenized_retrieved_documents = [
+            # Get entries that match with the filtered indexes
+            retrieved_entries = [self.__docs[idx]
+                                 for idx in positive_indexes]
+            # Get tokenized entries that match with the filtered indexes
+            tokenized_retrieved_entries = [
                 self.__tokenized_docs[idx] for idx in positive_indexes]
 
             print("======== BM25 ========")
-            show_scores(retrieved_documents, retrieval_scores,
-                        len(retrieved_documents))
+            show_scores(retrieved_entries, retrieval_scores,
+                        len(retrieved_entries))
             return (
                 retrieval_scores,
-                retrieved_documents,
-                tokenized_retrieved_documents,
+                retrieved_entries,
+                tokenized_retrieved_entries,
             )
 
         else:

@@ -1,5 +1,5 @@
 import numpy as np
-
+from timeit import default_timer as timer
 
 class Ranker(object):
     model = 'gsim'
@@ -27,10 +27,13 @@ class Ranker(object):
         """
         Re-ranks a set of documents according to embedding distance
         """
+        t1 = timer()
         query_embedding = self._embed(
             tokenized_query, self.query_embedding)  # (E,)
         document_embeddings = np.array([self._embed(
             document, self.document_embedding) for document in tokenized_documents])  # (N, E)
         scores = document_embeddings.dot(query_embedding)
         index_rankings = np.argsort(scores)[::-1]
+        t2 = timer()
+        print(f'Embeddings took {t2-t1}ms')
         return index_rankings, np.sort(scores)[::-1]

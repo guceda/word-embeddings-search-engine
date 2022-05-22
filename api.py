@@ -12,9 +12,8 @@ cors = CORS(app)
 # Start debugger
 app.config["DEBUG"] = True
 
+# instantiate and initialize model
 engine = SearchEngine()
-engine.load_query_embedding()
-
 
 @app.route('/', methods=["GET"])
 def home():
@@ -45,8 +44,8 @@ def search():
     """Search a query on trained model"""
     query_parameters = request.args
     query = query_parameters.get('query')
-    results = engine.search(query, False)
+    results = engine.search(query, True)
     return json.dumps(results)
 
 
-app.run()
+app.run(use_reloader=False)
