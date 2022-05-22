@@ -35,8 +35,7 @@ class SearchEngine:
         self.__setStatus(Status.PREPARING)
         self.__logger(f"Tokenizing documents...")
         clean_documents = [document['text'] for document in documents]
-        corpus = [list(gensim.utils.tokenize(doc.lower()))
-                  for doc in clean_documents]
+        corpus = [tokenize(doc) for doc in clean_documents]
         self.__setStatus(Status.READY)
         return (documents, corpus)
 
@@ -57,24 +56,22 @@ class SearchEngine:
     def search(self, raw_query, dual=False):
         documents = self.__docs
         tokenized_documents = self.__tokenized_docs
+        tokenized_query = self.__prepare_query(raw_query)
         # if dual Initial screening to fastly retrieve the n most relevant documents using BM25
         if dual:
             retrieval_scores, retrieved_documents, tokenzed_retrieved_documents = self.__retrieve(
-                raw_query, dual)
+                tokenized_query, dual)
             documents = retrieved_documents
             tokenized_documents = tokenzed_retrieved_documents
 
-        results = self.__rank(
-            raw_query, documents, tokenized_documents, retrieval_scores)
+        results = self.__rank(tokenized_query, documents, tokenized_documents)
         return {
             'data': results,
             'model': Retriever.model + (f' + {Ranker.model}' if dual else ''),
             'object': MODEL
         }
 
-    def __retrieve(self, raw_query, dual):
-        # Convert query to array of strings:: "convert string" -> ["convert", "string"]
-        tokenized_query = self.__prepare_query(raw_query)
+    def __retrieve(self, tokenized_query, dual):
         # Set the BM25 model
         retriever = Retriever(self.__tokenized_docs)
         # Return list with sorted positions and its scores
@@ -104,10 +101,8 @@ class SearchEngine:
             show_scores([], retrieval_scores, 0)
             return (retrieval_scores, None, None)
 
-    def __rank(self, raw_query, retrieved_documents, tokenized_retrieved_documents, retrieval_scores):
+    def __rank(self, tokenized_query, retrieved_documents, tokenized_retrieved_documents):
         self.__setStatus(Status.RANKING)
-        tokenized_query = self.__prepare_query(raw_query)
-
         if len(retrieved_documents) == 0:
             return []
 

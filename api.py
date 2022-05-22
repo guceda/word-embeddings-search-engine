@@ -44,7 +44,7 @@ def search():
     """Search a query on trained model"""
     query_parameters = request.args
     query = query_parameters.get('query')
-    results = engine.search(query, True)
+    results = engine.search(query, False)
     return json.dumps(results)
 
 
