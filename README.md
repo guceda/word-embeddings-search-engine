@@ -4,7 +4,6 @@ Based on [Dual Space word embeddings](https://m.mage.ai/building-a-semantic-sear
 Dataset retrieved from 
 https://github.com/RaRe-Technologies/gensim-data
 
-This {DATA(BASE)} is made available under the Public Domain Dedication and License v1.0 whose full text can be found at: http://opendatacommons.org/licenses/pddl/1.0/
 ## Activate environment
 
 Create a new visual environment: `python3.9 -m venv .venv`
